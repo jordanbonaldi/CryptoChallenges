@@ -1,0 +1,44 @@
+#!/usr/bin/python3
+
+import sys, codecs
+
+def is_english(line):
+	scr = filter(lambda x: 'a'<=x<='z' or 'A'<=x<='Z' or x==' ', line)
+
+	return float(len(list(scr))) / len(list(line))
+
+def find_english_text(line):
+	res = []
+	for i in range(256):
+		characters = [chr(c ^ i) for c in line]
+		res.append([is_english(characters), ''.join(characters), hex(i)])
+	english = max(res, key=lambda x: x[0])
+
+	return english
+
+def find_hex_xor(lines):
+	res = []
+	i = 0
+	for line in lines:
+		i += 1
+		line = line[:-1]
+		try:
+			l = codecs.decode(line, 'hex')
+		except:
+			sys.exit(84);
+		res.append([find_english_text(l), i])
+
+	return max(res, key=lambda x: x[0])
+
+def main(argv):
+	with open(argv, 'r') as f:
+		lines = f.readlines()
+
+	xor = find_hex_xor(lines)
+	print("{0} {1}".format(xor[1], xor[0][2].upper()[2:].zfill(2)))
+
+if __name__ == "__main__":
+	try:
+		main(sys.argv[1])
+	except:
+		sys.exit(84)

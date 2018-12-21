@@ -1,0 +1,88 @@
+#!/usr/bin/python3
+
+import sys
+import requests
+import codecs
+
+req = requests.Session()
+
+def post_request(data):
+    data = data.decode().replace('\n', '')
+    response = req.post('http://127.0.0.1:5000/challenge12', data)
+    if (len(response.content) == 0):
+        sys.exit(84)
+    try:
+        codecs.decode(response.content, 'base64')
+    except:
+        sys.exit(84)
+    return response.content
+
+def test_decrypt(guessed, crypted_block, As, buff_size, begin, pad_size):
+	for c in range(127):
+		test = b'A' * pad_size + As + guessed + bytes([c])
+
+		our_block = post_request(codecs.encode(test, "base64"))
+		our_block = codecs.decode(our_block, "base64")[begin : begin + buff_size]
+
+		if our_block == crypted_block:
+			guessed += bytes([c])
+			break
+
+	return guessed
+
+def calcul_res(cypher, key_size, test_len):
+    for j in range(len(cypher) - 4 + 1):
+        if cypher[j] == cypher[j + 1] == cypher[j + 2] == cypher[j + 3]:
+            return (j + 4) * key_size - (test_len + key_size * 4)
+    return -1
+
+def create_cypher(test, key_size):
+    cypher = []
+    for j in range(0, len(test) - key_size + 1, key_size):
+        cypher.append(test[j : j + key_size])
+    return cypher
+
+def get_prefix_size(key_size):
+    for test_len in range(key_size):
+        test = post_request(codecs.encode((test_len + key_size * 4) * b'A', "base64"))
+        test = codecs.decode(test, "base64")
+        cypher = create_cypher(test, key_size)
+        res = calcul_res(cypher, key_size, test_len)
+        if (res != -1):
+            return res
+    return 0
+
+def decrypt_unknown_string():
+    key_size = 16
+    prefix_size = get_prefix_size(key_size)
+    pad_size = key_size - prefix_size % key_size
+
+    test = post_request(codecs.encode(b'A' * pad_size, "base64"))
+    test = codecs.decode(test, "base64")    
+
+    As = b'A' * (len(test) - (prefix_size + pad_size))
+    guessed = b''
+
+    begin = key_size * (len(test) // key_size - 1)
+    while len(As) > 0:
+        As = As[:-1]
+        crypted = post_request(codecs.encode(b'A' * pad_size + As, "base64"))
+        crypted = codecs.decode(crypted, "base64")
+        crypted = crypted[begin: begin + key_size]
+
+        test = test_decrypt(guessed, crypted, As, key_size, begin, pad_size)
+        if (guessed == test):
+            guessed = guessed[:-1]
+            break
+        else:
+            guessed = test
+
+    return guessed
+
+def main():
+    text = codecs.encode(decrypt_unknown_string(), 'base64').decode()
+    text = text.replace('\n', '')
+    print(text)
+
+if __name__ == "__main__":
+	main()

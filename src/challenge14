@@ -1,0 +1,44 @@
+#!/usr/bin/python3
+
+import sys
+import requests
+import codecs
+
+req = requests.Session()
+
+def post_request(data, request):
+    response = req.post('http://127.0.0.1:5000/challenge14/' + request, data=data, cookies=req.cookies)
+    if (len(response.content) == 0 and request == 'encrypt'):
+        sys.exit(84)
+    return response.content
+
+def compute_offset(size):
+    return (size - size % 16)
+
+def flip_bits(data, size):
+    offset = compute_offset(size)
+    data = bytearray(codecs.decode(data, 'base64'))
+    data[offset + 0] = data[offset + 0] ^ (b'-'[0] ^ b';'[0])
+    data[offset + 6] = data[offset + 6] ^ (b'-'[0] ^ b'='[0])
+    data[offset + 11] = data[offset + 11] ^ (b'-'[0] ^ b';'[0])
+    data = codecs.encode(data, 'base64')
+    return data
+
+def encrypt_data():
+    for i in range(150):
+        data = "-admin-true-aaa"
+        data = (16 - i % 16) * 'a' + data
+        response = post_request(codecs.encode(bytes(data, 'utf-8'), 'base64'), 'encrypt')
+        response = flip_bits(response, i)
+        token = post_request(response, 'decrypt')
+        if len(token) > 0:
+            break
+    return token
+
+def main():
+    text = codecs.encode(encrypt_data(), 'base64').decode()
+    text = text.replace('\n', '')
+    print(text)
+
+if __name__ == "__main__":
+	main()

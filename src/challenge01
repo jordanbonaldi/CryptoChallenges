@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+
+import sys
+import codecs
+
+try:
+    with open(sys.argv[1], 'r') as myfile:
+    	read = myfile.read()
+    	if (read == ""):
+    		sys.exit(84)
+    	first = codecs.decode(read.replace('\n', ''), 'hex')
+    	text = codecs.encode(first, 'base64').decode()
+    	text = text.replace('\n', '')
+    	print(text)
+except Exception as e:
+	print (e)
+	sys.exit(84)

@@ -1,0 +1,38 @@
+#!/usr/bin/python3
+
+import sys
+import codecs
+
+def process_xor_same_length(left, right):
+    res = ""
+    for i in range(len(left)):
+        res += hex(int(left[i], 16) ^ int(right[i], 16)).upper()[2:]
+    return res
+
+def main(arg1):
+    if len(sys.argv) != 2:
+        print("args != 2")
+        sys.exit(84)
+    try:
+        with open(arg1, 'r') as myfile:
+            data = myfile.read()
+            left = data.splitlines()[0]
+            right = data.splitlines()[1]
+            if (len(left) != len(right)):
+                sys.exit(84)
+            if (len(left) % 2 == 1):
+                sys.exit(84)
+            if (len(right) % 2 == 1):
+                sys.exit(84)
+            int(left, 16)
+            int(right, 16)
+    except Exception as e:
+        print(e)
+        sys.exit(84)
+    try:
+        print(process_xor_same_length(left, right))
+    except:
+        sys.exit(84)
+
+if __name__ == "__main__":
+    main(sys.argv[1])

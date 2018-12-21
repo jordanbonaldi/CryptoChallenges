@@ -1,0 +1,49 @@
+#!/usr/bin/python3
+
+import sys
+import codecs
+import requests
+
+email_prefix = 'abcd@abcd.'
+g_email = 'bab@gmail.com'
+email_postfix = 'admin'
+email_postfix += chr(11) * 11
+
+req = requests.Session()
+
+def post_request(data, request):
+    data = data.decode().replace('\n', '')
+    response = req.post('http://127.0.0.1:5000/challenge11/' + request, data)
+    if (len(response.content) == 0):
+        sys.exit(84)
+    return response.content
+
+def concatenate_ciphertexts(prefix, postfix):
+    return codecs.encode(prefix[0:32] + postfix[16:32], 'base64')
+
+def create_prefix_profile():
+    return post_request(codecs.encode(bytes(g_email, 'utf-8'), 'base64'), 'create_profile')
+
+def create_postfix_profile():
+    return post_request(codecs.encode(bytes(email_prefix + email_postfix, 'utf-8'), 'base64'), 'create_profile')
+
+def retreive_admin_token():
+
+    response_1 = codecs.decode(create_prefix_profile(), 'base64')
+    response_2 = codecs.decode(create_postfix_profile(), 'base64')
+
+    modified_response = concatenate_ciphertexts(response_1, response_2)
+    res = post_request(modified_response, 'validate')
+    return res
+
+def main():
+    text = codecs.encode(retreive_admin_token(), 'base64').decode()
+    text = text.replace('\n', '')
+    print(text)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except:
+        sys.exit(84)
+

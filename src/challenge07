@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+
+import sys
+import codecs
+import base64
+from Crypto.Cipher import AES
+
+def read_file(needKey):
+    with open(sys.argv[1], 'r') as myfile:
+        data = myfile.read()
+        key = data.splitlines()[0]
+        content = data.split('\n', 1)[1]
+        content = content.replace('\n', '')
+        int(key, 16)
+        if needKey:
+            return key
+        else:
+            return content
+
+def pad_block_pkcs7(data, length):
+    if (len(data) >= length):
+        return data
+    pad = (length - len(data))
+    barray = bytearray(data, 'utf-8')
+    for i in range(pad):
+        barray.append(pad)
+    return barray
+
+def is_unpad_necessary(data):
+    char = data[-1]
+    i = 0
+    for n in range(len(data) - 1, len(data) - int(char) - 1, -1):
+        if data[n] == char:
+            i += 1
+    if i == int(char):
+        return True
+    else:
+        return False
+
+def unpad_block_pkcs7(data):
+    if is_unpad_necessary(data) == False:
+        return data
+    pad = int(data[-1])
+    data = data[:-pad]
+    return data
+
+def decrypt_AES(key, msg):
+    decipher = AES.new(key, AES.MODE_ECB)
+    return decipher.decrypt(msg)
+
+def break_str(line, n):
+    return [line[i:i+n] for i in range(0, len(line), n)]
+
+def main(argv):
+    try:
+        key = read_file(True)
+        content = read_file(False)
+        decode_hex = codecs.getdecoder("hex_codec")
+        key_base10 = decode_hex(key)[0]
+        #broke_str = break_str(content, len(key_base10))
+
+        content_base10 = codecs.decode(bytes(content, 'utf-8'), 'base64')
+
+        decrypted = decrypt_AES(key_base10, content_base10)
+        decrypted = unpad_block_pkcs7(decrypted)
+
+        text = codecs.encode(decrypted, 'base64').decode()
+        text = text.replace('\n', '')
+        print(text)
+
+    except Exception as e:
+        print(e)
+        sys.exit(84)
+
+if __name__ == "__main__":
+    main(sys.argv[1])
+

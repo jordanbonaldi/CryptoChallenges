@@ -1,0 +1,110 @@
+#!/usr/bin/python3
+
+import sys, base64, codecs
+
+###########################from challenge03
+
+def is_english(line):
+        scr = filter(lambda x: 'a'<=x<='z' or 'A'<=x<='Z' or x==' ', line)
+
+        return float(len(list(scr))) / len(list(line))
+
+def find_english_text(line):
+        res = []
+        for i in range(256):
+                characters = [chr(c ^ i) for c in line]
+                res.append([is_english(characters), ''.join(characters), hex(i)])
+        english = max(res, key=lambda x: x[0])
+
+        return english
+
+def find_multiple_hex_xor(lines):
+        res = []
+        for line in lines:
+                l = bytearray(line, 'utf-8')
+                res.append(find_english_text(l))
+        return res
+###########################################
+
+def xor_strings(xs, ys):
+    return "".join(chr(ord(x) ^ ord(y)) for x, y in zip(xs, ys))
+
+def read_file(argv):
+    with open(argv, 'r') as myfile:
+        data = myfile.read()
+    return data[:-1]
+
+def hamming(s1, s2):
+    s1 = ' '.join(format(ord(x), 'b').rjust(10, '0') for x in s1)
+    s2 = ' '.join(format(ord(x), 'b').rjust(10, '0') for x in s2)
+    return sum(c1 != c2 for c1, c2 in zip(s1, s2))
+
+def test_key_length(data, keysize):
+    bloc1 = data[0:keysize]
+    bloc2 = data[keysize:keysize * 2]
+    return hamming(bloc1, bloc2) / keysize
+
+def find_key_length(data):
+    keylengths = []
+    hammings = []
+    for i in range(5, 41):
+        ham = test_key_length(data, i)
+        keylengths.append(i)
+        hammings.append(ham)
+    final = [x for _,x in sorted(zip(hammings, keylengths))]
+    return final
+
+def break_str(line, n):
+    return [line[i:i+n] for i in range(0, len(line), n)]
+
+def in_tab(blocks, byte_index):
+    line = ''
+    for i in blocks:
+       	l = i[:byte_index]
+        if len(l) >= byte_index:
+            line += l[-1]
+    return line
+
+def transport_str(blocks, size):
+	nb = []
+	for i in range(1, size + 1):
+		nb.append(in_tab(blocks, i))
+	return nb
+
+def bytes_to_string(data):
+    return "".join(chr(x) for x in data)
+    
+def processing_break(data):
+    data = bytes_to_string(codecs.decode(data, 'hex'))
+    key_lengths = find_key_length(data)
+    final = ''
+    english_key = 0
+    for i in range(0, 5):
+        key_length = key_lengths[i]
+        b = break_str(data, key_length)
+        blocks = transport_str(b, key_length)
+        key = ''
+        for i in find_multiple_hex_xor(blocks):
+            key += i[2][2:].upper().rjust(2, '0')
+        try:
+                decimal_key = codecs.decode(key, 'hex')
+                #print(key_length)
+                #print(decimal_key)
+                #print(key)
+                english = is_english(bytes_to_string(decimal_key))
+                if english > english_key or english == english_key and key_length < len(final):
+                        final = decimal_key
+                        english_key = english
+        except:
+            continue
+    print(codecs.encode(final, 'hex').decode().upper())
+
+def main(argv):
+	data = read_file(argv)
+	processing_break(data)
+
+if __name__ == "__main__":
+    try:
+        main(sys.argv[1])
+    except:
+        sys.exit(84)

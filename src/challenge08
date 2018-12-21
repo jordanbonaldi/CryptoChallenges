@@ -1,0 +1,33 @@
+#!/usr/bin/python3
+
+import sys
+import codecs
+import base64
+from binascii import unhexlify
+from Crypto.Cipher import AES
+
+def is_ecb(enc):
+	chunked = [enc[i:i + AES.block_size] for i in range(0, len(enc), AES.block_size)]
+	return len(chunked) != len(list(set(chunked)))
+
+def detect_aes_ecb(enc):
+	i = 0
+	for line in enc:
+		i += 1
+		if is_ecb(line):
+			return i
+	return -1
+
+def read_file(alpha):
+	with open(alpha) as f:
+		enc = [codecs.decode(bytes(line, 'utf-8'), 'base64') for line in f.readlines()]
+	a = detect_aes_ecb(enc)
+	if (a < 0):
+		sys.exit(84)
+	print(a)
+
+if __name__ == "__main__":
+	try:
+		read_file(sys.argv[1])
+	except:
+		sys.exit(84)

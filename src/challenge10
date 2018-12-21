@@ -1,0 +1,65 @@
+#!/usr/bin/python3
+
+import sys
+import requests
+import codecs
+
+def get_block_size():
+	data = post_request(codecs.encode(bytes('\0', "utf-8"), "base64"))
+	data = codecs.decode(data, 'base64')
+	return len(data)
+
+req = requests.Session()
+
+def post_request(data):
+	data = data.decode().replace('\n', '')
+	response = req.post('http://127.0.0.1:5000/challenge10', data)
+	if (len(response.content) == 0):
+		sys.exit(84)
+	try:
+		codecs.decode(response.content, 'base64')
+	except:
+		sys.exit(84)
+	return response.content
+
+def test_decrypt(guessed, crypted_block, As, buff_size):
+	for c in range(127):
+		test = As + guessed + bytes([c])
+
+		our_block = post_request(codecs.encode(test, "base64"))
+		our_block = codecs.decode(our_block, "base64")[0:buff_size]
+
+		if our_block == crypted_block:
+			guessed += bytes([c])
+			break
+
+	return guessed
+
+def decrypt_unknown_string():
+
+	buff_size = get_block_size()
+	As = b'A' * buff_size
+	guessed = b''
+
+	while len(As) > 0:
+		As = As[:-1]
+		crypted = post_request(codecs.encode(As, "base64"))
+		crypted = codecs.decode(crypted, "base64")
+		crypted = crypted[0:buff_size]
+
+		test = test_decrypt(guessed, crypted, As, buff_size)
+		if (guessed == test):
+			guessed = guessed[:-1]
+			break
+		else:
+			guessed = test
+
+	return guessed
+
+def main():
+	text = codecs.encode(decrypt_unknown_string(), 'base64').decode()
+	text = text.replace('\n', '')
+	print(text)
+
+if __name__ == "__main__":
+	main()

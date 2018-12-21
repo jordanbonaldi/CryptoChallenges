@@ -1,0 +1,81 @@
+#!/usr/bin/python3
+
+from Crypto.Cipher import AES
+import sys, codecs
+
+def bytes_to_string(data):
+    return "".join( chr(x) for x in data)
+
+def xor_two_bytes(content, key):
+    res = bytearray()
+    j = 0
+    for i in range(len(content)):
+        res.append(key[j] ^ content[i])
+        j += 1
+        if len(key) == j:
+            j = 0
+    return res
+
+def is_unpad_necessary(data):
+    char = data[-1]
+    i = 0
+    for n in range(len(data) - 1, len(data) - int(char) - 1, -1):
+        if data[n] == char:
+            i += 1
+    if i == int(char):
+        return True
+    else:
+        return False
+
+def unpad_block_pkcs7(data):
+    if is_unpad_necessary(data) == False:
+        return data
+    pad = int(data[-1])
+    data = data[:-pad]
+    return data
+
+def decrypt_AES(key, msg, iv):
+    res = ""
+    keylen = len(key)
+    oldpart = msg
+    res = bytearray()
+    msg_len = len(msg) + (len(key) - (len(msg) % len(key)))
+    for i in range(int(len(msg) / keylen)):
+
+        part = msg[i * keylen: (i * keylen) + keylen]
+        oldpart = part
+
+        decipher = AES.new(key, AES.MODE_ECB)
+        decrypted = decipher.decrypt(part)
+
+        xor_msg = xor_two_bytes(decrypted, iv)
+
+        iv = oldpart
+        res += xor_msg
+    return res
+
+def main(argv):
+    try:
+        with open(sys.argv[1], 'r') as myfile:
+            data = myfile.read()
+            key = data.splitlines()[0]
+            IV = data.splitlines()[1]
+            content = data.split("\n",2)[2];
+            content = content.replace('\n', '')
+
+            content_base10 = codecs.decode(bytes(content, 'utf-8'), 'base64')
+            key_base10 = codecs.decode(bytes(key, 'utf-8'), 'hex')
+            IV_base10 = codecs.decode(bytes(IV, 'utf-8'), 'hex')
+            decrypted = decrypt_AES(key_base10, content_base10, IV_base10)
+            decrypted = unpad_block_pkcs7(decrypted)
+            
+            text = codecs.encode(decrypted, 'base64').decode()
+            text = text.replace('\n', '')
+            print(text)
+
+    except Exception as e:
+        print(e)
+        sys.exit(84)
+
+if __name__ == "__main__":
+    main(sys.argv[1])

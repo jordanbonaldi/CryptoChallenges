@@ -1,0 +1,35 @@
+#!/usr/bin/python3
+
+import sys
+import codecs
+
+def process_xor_with_key(content, key):
+    res = ""
+    j = 0
+    for i in range(len(content)):
+        res += hex(int(key[j], 16) ^ int(content[i], 16)).upper()[2:]
+        j += 1
+        if len(key) == j:
+            j = 0
+    return res
+
+def main(argv1):
+    if len(sys.argv) != 2:
+        sys.exit(84)
+    try:
+        with open(sys.argv[1], 'r') as myfile:
+            data = myfile.read()
+            key = data.splitlines()[0]
+            content = data.split('\n', 1)[1]
+            content = content.replace('\n', '')
+            int(key, 16)
+            int(content, 16)
+    except:
+        sys.exit(84)
+    try:
+        print(process_xor_with_key(content, key))
+    except:
+        sys.exit(84)
+
+if __name__ == "__main__":
+    main(sys.argv[1])
